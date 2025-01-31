@@ -7,11 +7,12 @@ import {
   DialogDescription,
   DialogHeader,
 } from "@/components/ui/dialog";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useDropzone } from "react-dropzone";
 import { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
+import { refreshFilesRef } from "@/app/dashboard/page";
 
 export function FileUploadDialog({
   open,
@@ -20,7 +21,9 @@ export function FileUploadDialog({
   open: boolean;
   setOpen: (value: boolean) => void;
 }) {
+  const [isUploading, setIsUploading] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
+  const { data: session } = useSession();
 
   const onDrop = (acceptedFiles: File[]) => {
     setFiles([...files, ...acceptedFiles]);
@@ -30,13 +33,57 @@ export function FileUploadDialog({
     setFiles(files.filter((_, i) => i !== index));
   };
 
-  const handleUpload = async () => {
+  const getPresignedUrl = async () => {
     if (files.length === 0) return;
-
+    setIsUploading(true); // Start loader
     try {
-      console.log("Uploading files:", files);
+      const userId = session?.user?.id;
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: JSON.stringify({
+          files: files.map((file) => ({ name: file.name, type: file.type })),
+          userId,
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) throw new Error("Failed to fetch presigned URLs");
+
+      const data = await response.json();
+      await uploadFilesToS3(data.presignedUrls);
       setFiles([]);
       setOpen(false);
+    } catch (error) {
+      console.error("Upload failed:", error);
+    } finally {
+      setIsUploading(false); // Stop loader
+    }
+  };
+
+  const uploadFilesToS3 = async (presignedUrls: { signedUrl: string }[]) => {
+    try {
+      await Promise.all(
+        files.map(async (file, index) => {
+          const fileData = presignedUrls[index];
+
+          if (!fileData || !fileData.signedUrl) {
+            console.error(`No signed URL found for file: ${file.name}`);
+            return;
+          }
+
+          console.log("File:", file);
+
+          const response = await fetch(fileData.signedUrl, {
+            method: "PUT",
+            headers: { "Content-Type": file.type },
+            body: file,
+          });
+
+          if (!response.ok) throw new Error(`Failed to upload ${file.name}`);
+        })
+      );
+      console.log("All files uploaded successfully.");
+      refreshFilesRef.refresh();
     } catch (error) {
       console.error("Upload failed:", error);
     }
@@ -76,7 +123,9 @@ export function FileUploadDialog({
 
         {/* File List */}
         {files.length > 0 && (
-          <div className="mt-4 space-y-2">
+          <div
+            className="mt-4 space-y-2"
+            style={{ maxHeight: "200px", overflowY: "auto" }}>
             {files.map((file, index) => (
               <div
                 key={index}
@@ -96,10 +145,14 @@ export function FileUploadDialog({
 
         {/* Upload Button */}
         <Button
-          onClick={handleUpload}
-          disabled={files.length === 0}
-          className="mt-4 w-full bg-blue-500 text-white hover:bg-blue-600">
-          Upload Files
+          onClick={getPresignedUrl}
+          disabled={files.length === 0 || isUploading}
+          className={`mt-4 w-full ${
+            isUploading
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-blue-500 hover:bg-blue-600 text-white"
+          }`}>
+          {isUploading ? "Uploading..." : "Upload Files"}
         </Button>
       </DialogContent>
     </Dialog>

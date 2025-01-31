@@ -47,16 +47,12 @@ export function AppSidebar() {
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
 
-  // if (!session?.user) {
-  //   redirect("/");
-  // }
-
   if (status === "loading") {
     console.log("Session is loading...");
   } else if (status === "unauthenticated") {
     redirect("/");
   } else {
-    console.log("Session data:", session);
+    // console.log("Session data:", session);
   }
 
   return (
