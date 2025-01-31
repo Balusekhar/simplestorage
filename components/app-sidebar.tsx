@@ -1,3 +1,4 @@
+"use client";
 import {
   Cloud,
   File,
@@ -6,8 +7,8 @@ import {
   Music,
   Plus,
   Settings,
-  User,
 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
   SidebarContent,
@@ -20,54 +21,46 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { auth, signOut } from "@/auth";
-import { redirect } from "next/navigation";
 import { Button } from "./ui/button";
+import Image from "next/image";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { FileUploadDialog } from "./FileUploadDialog";
+import { useState } from "react";
+import { signOut, useSession } from "next-auth/react";
+import { redirect } from "next/navigation";
 
 // Menu items
 const items = [
-  {
-    title: "Photos",
-    url: "#",
-    icon: FileImage,
-  },
-  {
-    title: "Videos",
-    url: "#",
-    icon: File,
-  },
-  {
-    title: "Documents",
-    url: "#",
-    icon: FileText,
-  },
-  {
-    title: "Audio",
-    url: "#",
-    icon: Music,
-  },
-  {
-    title: "Settings",
-    url: "#",
-    icon: Settings,
-  },
+  { title: "Photos", url: "#", icon: FileImage },
+  { title: "Videos", url: "#", icon: File },
+  { title: "Documents", url: "#", icon: FileText },
+  { title: "Audio", url: "#", icon: Music },
+  { title: "Settings", url: "#", icon: Settings },
 ];
 
-export async function AppSidebar() {
-  const session = await auth();
-  console.log(session)
+export function AppSidebar() {
+  const { data: session, status } = useSession();
+  const [open, setOpen] = useState(false);
 
-  if (!session?.user) {
+  // if (!session?.user) {
+  //   redirect("/");
+  // }
+
+  if (status === "loading") {
+    console.log("Session is loading...");
+  } else if (status === "unauthenticated") {
     redirect("/");
+  } else {
+    console.log("Session data:", session);
   }
 
-  const handleLogout = async () => {
-    "use server";
-    await signOut();
-  };
-
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar>
       {/* Header with App Name and Cloud Icon */}
       <SidebarHeader>
         <div className="flex items-center gap-2 py-4">
@@ -77,13 +70,16 @@ export async function AppSidebar() {
           </span>
         </div>
         {/* "New +" Button */}
-        <div className="flex justify-center">
+        <div onClick={() => setOpen(true)} className="flex justify-center">
           <Button className="flex items-center w-full gap-1 bg-blue-500 text-white rounded-md shadow hover:bg-blue-600">
             <span>New</span>
             <Plus size={16} />
           </Button>
         </div>
       </SidebarHeader>
+
+      {/* File Upload Dialog */}
+      <FileUploadDialog open={open} setOpen={setOpen} />
 
       <SidebarContent>
         {/* Sidebar Content with Categories */}
@@ -108,21 +104,29 @@ export async function AppSidebar() {
 
       {/* Sidebar Footer with User Info */}
       {session && (
-        <SidebarFooter onClick={handleLogout}>
-          <div className="flex items-center gap-2 p-4 border-t cursor-pointer">
-            {session.user.image ? (
-              <img
-                src={session.user.image}
-                alt="User Image"
-                className="w-10 h-10 rounded-full"
-              />
-            ) : (
-              <User className="w-10 h-10 text-gray-500" />
-            )}
-            <span className="text-sm font-medium text-gray-800">
-              {session.user.name}
-            </span>
-          </div>
+        <SidebarFooter className="p-4">
+          <Separator className="my-4" />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="w-full justify-start">
+                <Image
+                  src={session.user?.image || "/placeholder-avatar.png"}
+                  alt="User avatar"
+                  width={24}
+                  height={24}
+                  className="mr-2 rounded-full"
+                />
+                <span className="group-data-[collapsible=icon]:hidden">
+                  {session.user?.name}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem onClick={() => signOut()}>
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </SidebarFooter>
       )}
     </Sidebar>
