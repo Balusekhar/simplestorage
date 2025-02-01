@@ -1,5 +1,4 @@
 "use client";
-
 import {
   Dialog,
   DialogContent,
@@ -8,7 +7,7 @@ import {
   DialogHeader,
 } from "@/components/ui/dialog";
 import { useDropzone } from "react-dropzone";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
@@ -23,11 +22,78 @@ export function FileUploadDialog({
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null); // Error message state
   const { data: session } = useSession();
 
-  const onDrop = (acceptedFiles: File[]) => {
-    setFiles([...files, ...acceptedFiles]);
-  };
+  console.log("files in upload dialog", files);
+  console.log("error in upload dialog", errorMessage);
+
+  const onDrop = useCallback(
+    (acceptedFiles: File[], rejectedFiles: any[]) => {
+      // Reset error message on new drop
+      setErrorMessage(null);
+
+      // Handle rejected files (wrong file types)
+      if (rejectedFiles.length > 0) {
+        setErrorMessage("File size should not be more than 500MB and no more than 10 files should be uploaded");
+        return;
+      }
+
+      // Check file count and size limit before adding files
+      const totalFiles = [...files, ...acceptedFiles];
+      const totalSize = totalFiles.reduce((acc, file) => acc + file.size, 0);
+
+      // Only show one error message for size or file count limits
+      let error = null;
+      if (totalFiles.length > 10) {
+        error = "You can only upload a maximum of 3 files.";
+      } else if (totalSize > 500 * 1024 * 1024) {
+        // 500MB limit
+        error = "Total file size exceeds 500MB.";
+      }
+
+      // Only show one error message if either condition is met
+      if (error) {
+        setErrorMessage(error);
+        return;
+      }
+
+      setFiles(totalFiles);
+    },
+    [files]
+  );
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    multiple: true,
+    maxFiles: 10, // Set max files to 3 for testing
+    maxSize: 500 * 1024 * 1024, // Max file size 500MB for testing
+    accept: {
+      // Images
+      "image/jpeg": [".jpeg", ".jpg"],
+      "image/png": [".png"],
+      "image/gif": [".gif"],
+      "image/bmp": [".bmp"],
+      "image/webp": [".webp"],
+
+      // Documents
+      "application/pdf": [".pdf"],
+      "application/msword": [".doc"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        [".docx"],
+      "text/plain": [".txt"],
+
+      // Audio
+      "audio/mpeg": [".mp3"],
+      "audio/wav": [".wav"],
+      "audio/ogg": [".ogg"],
+
+      // Video
+      "video/mp4": [".mp4"],
+      "video/quicktime": [".mov"],
+      "video/x-msvideo": [".avi"],
+    },
+  });
 
   const removeFile = (index: number) => {
     setFiles(files.filter((_, i) => i !== index));
@@ -71,7 +137,6 @@ export function FileUploadDialog({
             return;
           }
 
- 
           const response = await fetch(fileData.signedUrl, {
             method: "PUT",
             headers: { "Content-Type": file.type },
@@ -87,11 +152,6 @@ export function FileUploadDialog({
       console.error("Upload failed:", error);
     }
   };
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    multiple: true,
-  });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -119,6 +179,11 @@ export function FileUploadDialog({
               : "Drag & drop files here, or click to select files"}
           </p>
         </div>
+
+        {/* Error Message */}
+        {errorMessage && (
+          <p className="mt-2 text-red-500 text-sm">{errorMessage}</p>
+        )}
 
         {/* File List */}
         {files.length > 0 && (
