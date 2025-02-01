@@ -1,16 +1,10 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Card } from "@/components/ui/card";
+import FileCard from "@/components/FileCard";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MoreVertical, File, FileText, Music, Video } from "lucide-react";
-import Image from "next/image";
+import { Plus } from "lucide-react";
+import { FileUploadDialog } from "@/components/FileUploadDialog";
 
 interface FileItem {
   fileName: string;
@@ -27,6 +21,9 @@ function Dashboard() {
   const { data: session } = useSession();
   const [files, setFiles] = useState<FileItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [filteredFiles, setFilteredFiles] = useState<FileItem[]>([]);
+  const [selectedFilter, setSelectedFilter] = useState<string>("all");
+  const [open, setOpen] = useState<boolean>(false); // State to control dialog visibility
 
   const CLOUD_FRONT_URL = "https://dsebtrmrf0wr2.cloudfront.net";
 
@@ -50,32 +47,12 @@ function Dashboard() {
       );
 
       setFiles(processedFiles);
+      setFilteredFiles(processedFiles); // Set all files initially
     } catch (error) {
       console.error("Error fetching user files:", error);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const getFileIcon = (type: string) => {
-    switch (type) {
-      case "pdf":
-        return <FileText className="h-12 w-12 text-red-500" />;
-      case "doc":
-      case "docx":
-        return <FileText className="h-12 w-12 text-blue-500" />;
-      case "mp3":
-        return <Music className="h-12 w-12 text-purple-500" />;
-      case "mp4":
-      case "mov":
-        return <Video className="h-12 w-12 text-green-500" />;
-      default:
-        return <File className="h-12 w-12 text-gray-500" />;
-    }
-  };
-
-  const isImage = (type: string) => {
-    return ["jpg", "jpeg", "png", "gif", "webp"].includes(type);
   };
 
   const handleDelete = async (fileKey: string) => {
@@ -97,6 +74,43 @@ function Dashboard() {
     }
   };
 
+  // Function to handle the filter logic
+  const handleFilterChange = (filter: string) => {
+    setSelectedFilter(filter);
+
+    let filtered: FileItem[] = [];
+
+    // Check the filter type and apply the filtering logic based on file extensions
+    switch (filter) {
+      case "all":
+        filtered = files;
+        break;
+      case "photo":
+        filtered = files.filter((file) => {
+          const ext = file.type;
+          return ["png", "jpg", "jpeg", "gif", "bmp", "webp"].includes(ext);
+        });
+        break;
+      case "video":
+        filtered = files.filter((file) => {
+          const ext = file.type;
+          return ["mp4", "avi", "mov", "mkv", "flv"].includes(ext);
+        });
+        break;
+      case "document":
+        filtered = files.filter((file) => {
+          const ext = file.type;
+          return ["pdf", "doc", "docx", "txt", "ppt", "xls"].includes(ext);
+        });
+        break;
+      default:
+        filtered = files;
+        break;
+    }
+
+    setFilteredFiles(filtered); // Update filtered files state
+  };
+
   useEffect(() => {
     refreshFilesRef.refresh = fetchUserFiles;
   }, [session]);
@@ -107,59 +121,73 @@ function Dashboard() {
 
   return (
     <div className="p-6 flex flex-col space-y-4">
-      <h1 className="text-xl font-bold mb-4">User Files</h1>
+      {/* Filter Section */}
+      <div className="flex justify-between mb-4">
+        <div className="space-x-4">
+          <button
+            onClick={() => handleFilterChange("all")}
+            className={`text-sm px-3 py-1 rounded-lg ${
+              selectedFilter === "all"
+                ? "bg-blue-500 text-white"
+                : "bg-gray-200"
+            }`}>
+            All
+          </button>
+          <button
+            onClick={() => handleFilterChange("photo")}
+            className={`text-sm px-3 py-1 rounded-lg ${
+              selectedFilter === "photo"
+                ? "bg-blue-500 text-white"
+                : "bg-gray-200"
+            }`}>
+            Photos
+          </button>
+          <button
+            onClick={() => handleFilterChange("video")}
+            className={`text-sm px-3 py-1 rounded-lg ${
+              selectedFilter === "video"
+                ? "bg-blue-500 text-white"
+                : "bg-gray-200"
+            }`}>
+            Videos
+          </button>
+          <button
+            onClick={() => handleFilterChange("document")}
+            className={`text-sm px-3 py-1 rounded-lg ${
+              selectedFilter === "document"
+                ? "bg-blue-500 text-white"
+                : "bg-gray-200"
+            }`}>
+            Documents
+          </button>
+        </div>
+
+        {/* New File Button */}
+        <div onClick={() => setOpen(true)} className="flex justify-center">
+          <Button className="flex items-center gap-1 bg-blue-500 text-white rounded-md shadow hover:bg-blue-600">
+            <span>New</span>
+            <Plus size={16} />
+          </Button>
+        </div>
+      </div>
+
+      {/* Loading and Files Section */}
       {isLoading ? (
         <p>Loading files...</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full">
-          {files.length > 0 ? (
-            files.map((file, index) => (
-              <Card
-                key={index}
-                className="p-4 relative cursor-pointer w-full max-w-xs mx-auto">
-                <a
-                  href={file.cdnUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block">
-                  <div className="aspect-video relative mb-2 flex items-center justify-center bg-gray-50 rounded-md">
-                    {isImage(file.type) ? (
-                      <Image
-                        src={file.cdnUrl}
-                        alt={file.fileName}
-                        fill
-                        className="object-fill rounded-md"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      />
-                    ) : (
-                      getFileIcon(file.type)
-                    )}
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm truncate">{file.fileName}</p>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4 text-gray-600" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(file.fileKey)}
-                          className="text-red-600">
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </a>
-              </Card>
+          {filteredFiles.length > 0 ? (
+            filteredFiles.map((file, index) => (
+              <FileCard key={index} file={file} onDelete={handleDelete} />
             ))
           ) : (
             <p>No files found.</p>
           )}
         </div>
       )}
+
+      {/* File Upload Dialog */}
+      <FileUploadDialog open={open} setOpen={setOpen} />
     </div>
   );
 }

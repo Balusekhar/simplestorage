@@ -4,6 +4,7 @@ import {
   File,
   FileImage,
   FileText,
+  Home,
   Music,
   Plus,
 } from "lucide-react";
@@ -32,9 +33,11 @@ import { FileUploadDialog } from "./FileUploadDialog";
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 // Menu items
 const items = [
+  { title: "Home", url: "/dashboard", icon: Home },
   { title: "Photos", url: "/dashboard/photos", icon: FileImage },
   { title: "Videos", url: "/dashboard/videos", icon: File },
   { title: "Documents", url: "/dashboard/documents", icon: FileText },
@@ -83,10 +86,10 @@ export function AppSidebar() {
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
+                    <Link href={item.url}>
                       <item.icon className="mr-3 text-gray-500" />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
