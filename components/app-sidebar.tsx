@@ -6,7 +6,6 @@ import {
   FileText,
   Music,
   Plus,
-  Settings,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -36,11 +35,10 @@ import { redirect } from "next/navigation";
 
 // Menu items
 const items = [
-  { title: "Photos", url: "#", icon: FileImage },
-  { title: "Videos", url: "#", icon: File },
-  { title: "Documents", url: "#", icon: FileText },
-  { title: "Audio", url: "#", icon: Music },
-  { title: "Settings", url: "#", icon: Settings },
+  { title: "Photos", url: "/dashboard/photos", icon: FileImage },
+  { title: "Videos", url: "/dashboard/videos", icon: File },
+  { title: "Documents", url: "/dashboard/documents", icon: FileText },
+  { title: "Audio", url: "/dashboard/audio", icon: Music },
 ];
 
 export function AppSidebar() {
@@ -48,7 +46,6 @@ export function AppSidebar() {
   const [open, setOpen] = useState(false);
 
   if (status === "loading") {
-    console.log("Session is loading...");
   } else if (status === "unauthenticated") {
     redirect("/");
   } else {

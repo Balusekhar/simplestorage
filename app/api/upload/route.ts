@@ -27,8 +27,6 @@ const s3Client = new S3Client(s3ClientConfig);
 // Post Route to get Presigned Urls
 export async function POST(req: NextRequest) {
   const { files, userId } = await req.json();
-  console.log("files",files)
-  console.log("userId",userId)
 
   try {
     const presignedUrls = await Promise.all(

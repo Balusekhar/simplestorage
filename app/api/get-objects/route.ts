@@ -20,10 +20,8 @@ export async function GET(req: NextRequest) {
 
   try {
     const response = await s3Client.send(command);
-    console.log("S3 Response:", response); // Debugging
 
     if (!response.Contents) {
-      console.log("No files found for user:", userId);
       return NextResponse.json({ files: [] });
     }
 
@@ -33,7 +31,6 @@ export async function GET(req: NextRequest) {
         lastModified: file.LastModified,
         size: file.Size,
     }));
-    console.log("files in s3",response.Contents)
 
     return NextResponse.json({ files });
   } catch (error: any) {

@@ -71,8 +71,7 @@ export function FileUploadDialog({
             return;
           }
 
-          console.log("File:", file);
-
+ 
           const response = await fetch(fileData.signedUrl, {
             method: "PUT",
             headers: { "Content-Type": file.type },
