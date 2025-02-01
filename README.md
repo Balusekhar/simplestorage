@@ -1,6 +1,6 @@
 # Simple Storage
 
-<!-- ![Cover Image](public/cover.png) -->
+![Cover Image](public/cover.png)
 
 ## Description
 
