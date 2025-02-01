@@ -11,7 +11,7 @@ import { useCallback, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
-import { refreshFilesRef } from "@/app/dashboard/page";
+import { refreshFilesRef } from "@/app/utils/refreshFileRef";
 
 export function FileUploadDialog({
   open,

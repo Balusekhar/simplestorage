@@ -5,6 +5,7 @@ import FileCard from "@/components/FileCard";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { FileUploadDialog } from "@/components/FileUploadDialog";
+import { refreshFilesRef } from "../utils/refreshFileRef";
 
 interface FileItem {
   fileName: string;
@@ -13,9 +14,9 @@ interface FileItem {
   cdnUrl: string;
 }
 
-export const refreshFilesRef = {
-  refresh: () => {},
-};
+// export const refreshFilesRef = {
+//   refresh: () => {},
+// };
 
 function Dashboard() {
   const { data: session } = useSession();
